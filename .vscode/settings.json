@@ -1,0 +1,12 @@
+{
+    "[dart]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "always"
+        }
+    },
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.patterns": {
+        "*.dart": "$(capture).g.dart, $(capture).freezed.dart"
+    }
+}
