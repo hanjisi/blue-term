@@ -15,5 +15,5 @@ class LogMessage {
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
-  String get timeString => DateFormat('HH:mm:ss.SSS').format(timestamp);
+  String get timeString => DateFormat('HH:mm:ss').format(timestamp);
 }

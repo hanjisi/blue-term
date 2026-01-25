@@ -1,78 +1,182 @@
+import 'dart:io';
+
 import 'package:blueterm/pages/terminal.dart';
 import 'package:blueterm/providers/connect.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ConnectPage extends ConsumerWidget {
+class ConnectPage extends ConsumerStatefulWidget {
   const ConnectPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // final adapterState = ref.watch(adapterStateProvider);
+  ConsumerState<ConnectPage> createState() => _ConnectPageState();
+}
+
+class _ConnectPageState extends ConsumerState<ConnectPage> {
+  bool _showFilter = false;
+  bool _hideUnnamed = false;
+  final TextEditingController _filterCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _filterCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isScanning = ref.watch(isScanningProvider);
     final scanResults = ref.watch(scanResultsProvider);
     return Scaffold(
       appBar: AppBar(
-        title: buildScanStatusWidget(
-          isScanning.value!,
+        title: _buildScanStatusWidget(
+          isScanning.value ?? false,
           scanResults.value?.length ?? 0,
         ),
+        actions: [
+          IconButton(
+            icon: Icon(_showFilter ? Icons.filter_list_off : Icons.filter_list),
+            onPressed: () {
+              setState(() {
+                _showFilter = !_showFilter;
+                if (!_showFilter) {
+                  // Optional: clear filter when closing? No, keep state.
+                  FocusScope.of(context).unfocus();
+                }
+              });
+            },
+          ),
+        ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await FlutterBluePlus.startScan(timeout: const Duration(seconds: 30));
-        },
-        child: ListView.separated(
-          itemCount: scanResults.value?.length ?? 0,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final scanResult = scanResults.value?[index];
-            return ListTile(
-              dense: true,
-              title: _buildTitle(scanResult!),
-              subtitle: _buildSubtitle(scanResult),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (true) _connectedBadge(),
-                  const SizedBox(width: 0),
-                  _rssiText(scanResult),
-                ],
-              ),
-              onTap: () async {
-                // Stop scanning before connecting
-                if (isScanning.value == true) {
-                  await FlutterBluePlus.stopScan();
-                }
-
-                // Show loading? simplified for now
-                try {
-                  //await scanResult.device.connect(license: License.free);
-                  if (context.mounted) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            TerminalPage(device: scanResult.device),
+      body: Column(
+        children: [
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: SizedBox(
+              height: _showFilter ? null : 0,
+              child: Container(
+                color: Colors.grey.shade50,
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _filterCtrl,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: '按名称过滤',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.search),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
-                    );
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: Checkbox(
+                            value: _hideUnnamed,
+                            onChanged: (v) =>
+                                setState(() => _hideUnnamed = v ?? false),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text("隐藏未知名称设备"),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: scanResults.when(
+              data: (results) {
+                // Filter
+                final filtered = results.where((r) {
+                  final name = r.device.platformName;
+                  if (_hideUnnamed && name.isEmpty) {
+                    return false;
                   }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Connection failed: $e")),
-                    );
+                  if (_filterCtrl.text.isNotEmpty) {
+                    if (!name.toLowerCase().contains(
+                      _filterCtrl.text.toLowerCase(),
+                    )) {
+                      return false;
+                    }
                   }
-                }
+                  return true;
+                }).toList();
+
+                // Sort
+                filtered.sort((a, b) {
+                  final aConn = a.device.isConnected ? 1 : 0;
+                  final bConn = b.device.isConnected ? 1 : 0;
+                  if (aConn != bConn) {
+                    return bConn - aConn;
+                  }
+                  return b.rssi.compareTo(a.rssi);
+                });
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    if (isScanning.value != true) {
+                      await ref.read(scanResultsProvider.notifier).startScan();
+                    }
+                  },
+                  child: ListView.separated(
+                    itemCount: filtered.length,
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final scanResult = filtered[index];
+                      return ListTile(
+                        dense: true,
+                        title: _buildTitle(scanResult),
+                        subtitle: _buildSubtitle(scanResult),
+                        trailing: scanResult.device.isConnected
+                            ? _connectedBadge()
+                            : _rssiText(scanResult),
+                        onTap: () async {
+                          if (isScanning.value == true) {
+                            await ref
+                                .read(scanResultsProvider.notifier)
+                                .stopScan();
+                          }
+                          if (context.mounted) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    TerminalPage(device: scanResult.device),
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  ),
+                );
               },
-            );
-          },
-        ),
+              error: (err, stack) {
+                return _buildBluetoothOffWidget(context);
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget buildScanStatusWidget(bool isScanning, int deviceCount) {
+  Widget _buildScanStatusWidget(bool isScanning, int deviceCount) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -87,6 +191,28 @@ class ConnectPage extends ConsumerWidget {
           ),
         Text("设备连接 $deviceCount"),
       ],
+    );
+  }
+
+  Widget _buildBluetoothOffWidget(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.bluetooth_disabled, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text("请开启蓝牙以开始扫描设备", style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              if (Platform.isAndroid) {
+                FlutterBluePlus.turnOn();
+              }
+            },
+            child: const Text("开启蓝牙"),
+          ),
+        ],
+      ),
     );
   }
 

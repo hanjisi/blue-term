@@ -22,7 +22,6 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
   @override
   void initState() {
     super.initState();
-    // Initialize with 0 length, will be fixed in setup
     _tabController = TabController(length: 0, vsync: this);
   }
 
@@ -38,6 +37,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
     final profiles = commandState.profiles;
     final currentId = commandState.currentProfileId;
 
+    // 监听配置文件变化
     ref.listen(commandProvider, (prev, next) {
       if (next.profiles.isEmpty) return;
       final idx = next.profiles.indexWhere(
@@ -52,14 +52,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
       }
     });
 
-    if (profiles.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(title: const Text("Command Editor")),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    // Recreate controller if length changes
+    // 如果长度发生变化，则重新创建控制器。
     if (_tabController.length != profiles.length) {
       _tabController.dispose();
       int initialIndex = profiles.indexWhere((p) => p.id == currentId);
@@ -91,7 +84,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Command Editor"),
+        title: const Text("指令编辑"),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -105,48 +98,42 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.menu),
             onSelected: (val) {
-              if (val == 'rename')
-                _editProfileDetails(currentProfile);
-              else if (val == 'add_cat')
+              if (val == 'rename') {
+                _editProfileName(currentProfile);
+              } else if (val == 'add_cat') {
                 _addCategory(currentProfile);
-              else if (val == 'export')
+              } else if (val == 'export') {
                 _exportProfile(currentProfile);
-              else if (val == 'delete')
+              } else if (val == 'delete') {
                 _deleteProfile(currentProfile);
-              else if (val == 'new')
+              } else if (val == 'new') {
                 _createNewProfile();
-              else if (val == 'import')
+              } else if (val == 'import') {
                 _importProfile();
+              }
             },
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'rename',
-                child: _iconText(
-                  Icons.drive_file_rename_outline,
-                  "Rename Profile",
-                ),
+                child: _iconText(Icons.drive_file_rename_outline, "重命名"),
               ),
               PopupMenuItem(
                 value: 'add_cat',
-                child: _iconText(Icons.create_new_folder, "Add Category"),
+                child: _iconText(Icons.create_new_folder, "添加分类"),
               ),
               PopupMenuItem(
                 value: 'export',
-                child: _iconText(Icons.download, "Export JSON"),
+                child: _iconText(Icons.download, "导出JSON"),
               ),
               PopupMenuItem(
                 value: 'delete',
-                child: _iconText(
-                  Icons.delete,
-                  "Delete Profile",
-                  color: Colors.red,
-                ),
+                child: _iconText(Icons.delete, "删除", color: Colors.red),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(value: 'new', child: Text("New Profile")),
-              const PopupMenuItem(value: 'import', child: Text("Import JSON")),
+              const PopupMenuItem(value: 'new', child: Text("新建配置")),
+              const PopupMenuItem(value: 'import', child: Text("导入JSON")),
             ],
           ),
         ],
@@ -170,7 +157,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
 
   Widget _buildProfileView(CommandProfile profile) {
     if (profile.categories.isEmpty) {
-      return const Center(child: Text("No Categories. Add one via menu (⋮)."));
+      return const Center(child: Text("没有类别"));
     }
     return ListView(
       padding: const EdgeInsets.only(bottom: 20, top: 16),
@@ -180,9 +167,10 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
     );
   }
 
-  // Helper method for the bottom sheet menu
+  //底部弹出菜单的辅助方法
   void _showCategoryOptions(CommandProfile p, CommandCategory cat) {
     showModalBottomSheet(
+      showDragHandle: true,
       context: context,
       builder: (c) => SafeArea(
         child: Column(
@@ -190,7 +178,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
           children: [
             ListTile(
               leading: const Icon(Icons.add),
-              title: const Text("Add Command"),
+              title: const Text("添加指令"),
               onTap: () async {
                 Navigator.pop(c);
                 await _addCommand(p, cat);
@@ -198,7 +186,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
             ),
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text("Rename Category"),
+              title: const Text("重命名"),
               onTap: () {
                 Navigator.pop(c);
                 _renameCategory(p, cat);
@@ -206,10 +194,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text(
-                "Delete Category",
-                style: TextStyle(color: Colors.red),
-              ),
+              title: const Text("删除", style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(c);
                 _deleteCategory(p, cat);
@@ -233,7 +218,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         trailing: IconButton(
-          icon: const Icon(Icons.more_horiz), // Three dots
+          icon: const Icon(Icons.menu),
           onPressed: () => _showCategoryOptions(profile, cat),
         ),
         children: cat.items
@@ -244,7 +229,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
                   "${item.type.name} ${item.unit.isNotEmpty ? '(${item.unit})' : ''}",
                 ),
                 trailing: IconButton(
-                  icon: const Icon(Icons.more_vert),
+                  icon: const Icon(Icons.menu),
                   onPressed: () => _showCommandOptions(profile, cat, item),
                 ),
                 onTap: () => _editCommand(profile, cat, item),
@@ -262,13 +247,14 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
   ) {
     showModalBottomSheet(
       context: context,
+      showDragHandle: true,
       builder: (c) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text("Edit Command"),
+              title: const Text("编辑指令"),
               onTap: () {
                 Navigator.pop(c);
                 _editCommand(p, cat, item);
@@ -276,10 +262,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text(
-                "Delete Command",
-                style: TextStyle(color: Colors.red),
-              ),
+              title: const Text("删除指令", style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(c);
                 _deleteCommand(p, cat, item);
@@ -293,28 +276,47 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
 
   // --- Actions ---
 
-  // --- Actions ---
+  /// 修改配置文件名称
+  Future<void> _editProfileName(CommandProfile p) async {
+    final name = await _promptText("配置文件名称", initial: p.name);
+    if (name != null && name.isNotEmpty) {
+      _saveProfileWithMap(p, (map) {
+        map['name'] = name;
+      });
+    }
+  }
 
+  /// 创建新配置文件
   Future<void> _createNewProfile() async {
-    final p = CommandProfile(name: "New Profile", categories: []);
-    await ref.read(commandProvider.notifier).saveProfile(p);
-    ref.read(commandProvider.notifier).setCurrentProfile(p.id);
+    final name = await _promptText("配置文件名称");
+    if (name != null && name.isNotEmpty) {
+      final p = CommandProfile(name: name, categories: []);
+      await ref.read(commandProvider.notifier).saveProfile(p);
+      ref.read(commandProvider.notifier).setCurrentProfile(p.id);
+    }
   }
 
   Future<void> _deleteProfile(CommandProfile p) async {
+    final state = ref.read(commandProvider);
+    if (state.profiles.length == 1) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("至少需要一个配置文件")));
+      return;
+    }
     final confirm = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text("Delete Profile"),
-        content: Text("Are you sure you want to delete ${p.name}?"),
+        title: const Text("删除配置文件"),
+        content: Text("您确定要删除 ${p.name} 吗？"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text("Cancel"),
+            child: const Text("取消"),
           ),
           TextButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text("Delete"),
+            child: const Text("删除"),
           ),
         ],
       ),
@@ -328,7 +330,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
     await showDialog(
       context: context,
       builder: (c) => SimpleDialog(
-        title: const Text("Import Profile"),
+        title: const Text("导入配置"),
         children: [
           SimpleDialogOption(
             onPressed: () {
@@ -337,7 +339,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
             },
             child: const Padding(
               padding: EdgeInsets.all(8.0),
-              child: Text("Paste JSON"),
+              child: Text("粘贴JSON"),
             ),
           ),
           SimpleDialogOption(
@@ -347,7 +349,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
             },
             child: const Padding(
               padding: EdgeInsets.all(8.0),
-              child: Text("Download from URL"),
+              child: Text("从URL下载"),
             ),
           ),
         ],
@@ -361,13 +363,13 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
       builder: (c) {
         final ctrl = TextEditingController();
         return AlertDialog(
-          title: const Text("Paste JSON"),
+          title: const Text("粘贴JSON"),
           content: TextField(
             controller: ctrl,
             maxLines: 10,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              hintText: "{ ... }",
+              hintText: "{ }",
             ),
           ),
           actions: [
@@ -436,17 +438,8 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
     ).showSnackBar(const SnackBar(content: Text("JSON copied to clipboard")));
   }
 
-  Future<void> _editProfileDetails(CommandProfile p) async {
-    final name = await _promptText("Rename Profile", initial: p.name);
-    if (name != null && name.isNotEmpty) {
-      _saveProfileWithMap(p, (map) {
-        map['name'] = name;
-      });
-    }
-  }
-
   Future<void> _addCategory(CommandProfile p) async {
-    final name = await _promptText("Category Name");
+    final name = await _promptText("分类名称");
     if (name != null) {
       final newCat = CommandCategory(name: name, items: []);
       _saveProfileWithMap(p, (map) {
@@ -458,7 +451,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
   }
 
   Future<void> _renameCategory(CommandProfile p, CommandCategory cat) async {
-    final name = await _promptText("Rename Category", initial: cat.name);
+    final name = await _promptText("分类名称", initial: cat.name);
     if (name != null && name.isNotEmpty) {
       _updateCategoryInMap(p, cat.id, (cMap) {
         cMap['name'] = name;
@@ -466,12 +459,35 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
     }
   }
 
-  Future<void> _deleteCategory(CommandProfile p, CommandCategory c) async {
-    _saveProfileWithMap(p, (map) {
-      final cats = (map['categories'] as List).cast<Map<String, dynamic>>();
-      cats.removeWhere((x) => x['id'] == c.id);
-      map['categories'] = cats;
-    });
+  Future<void> _deleteCategory(
+    CommandProfile p,
+    CommandCategory category,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text("删除分组"),
+        content: Text("您确定要删除 ${category.name} 吗？"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text("取消"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text("删除"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _saveProfileWithMap(p, (map) {
+        final cats = (map['categories'] as List).cast<Map<String, dynamic>>();
+        cats.removeWhere((x) => x['id'] == category.id);
+        map['categories'] = cats;
+      });
+    }
   }
 
   Future<void> _addCommand(CommandProfile p, CommandCategory cat) async {
@@ -508,11 +524,31 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
     CommandCategory cat,
     CommandItem item,
   ) async {
-    _updateCategoryInMap(p, cat.id, (cMap) {
-      final items = (cMap['items'] as List).cast<Map<String, dynamic>>();
-      items.removeWhere((x) => x['id'] == item.id);
-      cMap['items'] = items;
-    });
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text("删除指令"),
+        content: Text("您确定要删除 ${item.name} 吗？"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text("取消"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text("删除"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _updateCategoryInMap(p, cat.id, (cMap) {
+        final items = (cMap['items'] as List).cast<Map<String, dynamic>>();
+        items.removeWhere((x) => x['id'] == item.id);
+        cMap['items'] = items;
+      });
+    }
   }
 
   Future<CommandItem?> _showCommandDialog({CommandItem? initialItem}) {
@@ -524,6 +560,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
 
   // --- Helpers ---
 
+  /// 弹出输入框
   Future<String?> _promptText(String label, {String? initial}) {
     return showDialog<String>(
       context: context,
@@ -535,11 +572,11 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c),
-              child: const Text("Cancel"),
+              child: const Text("取消"),
             ),
             TextButton(
               onPressed: () => Navigator.pop(c, ctrl.text),
-              child: const Text("OK"),
+              child: const Text("确定"),
             ),
           ],
         );
@@ -615,7 +652,7 @@ class _CommandDialogState extends State<_CommandDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.initialItem == null ? "New Command" : "Edit Command"),
+      title: Text(widget.initialItem == null ? "添加指令" : "编辑指令"),
       content: SizedBox(
         width: 400,
         child: SingleChildScrollView(
@@ -626,17 +663,23 @@ class _CommandDialogState extends State<_CommandDialog> {
               children: [
                 TextFormField(
                   controller: _nameCtrl,
-                  decoration: const InputDecoration(labelText: "Name"),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? "Name required" : null,
+                  decoration: const InputDecoration(labelText: "名称"),
+                  validator: (v) => v == null || v.isEmpty ? "名称不能为空" : null,
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<CommandType>(
-                  value: _type,
-                  decoration: const InputDecoration(labelText: "Type"),
+                  initialValue: _type,
+                  decoration: const InputDecoration(labelText: "类型"),
                   items: CommandType.values
                       .map(
-                        (e) => DropdownMenuItem(value: e, child: Text(e.name)),
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(switch (e) {
+                            CommandType.simple => "简单",
+                            CommandType.input => "输入",
+                            CommandType.enumSelect => "枚举",
+                          }),
+                        ),
                       )
                       .toList(),
                   onChanged: (val) {
@@ -645,13 +688,11 @@ class _CommandDialogState extends State<_CommandDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                // Fields based on Type
+                // 字段根据类型而定
                 if (_type == CommandType.input) ...[
                   TextFormField(
                     controller: _unitCtrl,
-                    decoration: const InputDecoration(
-                      labelText: "Unit (e.g. ms, V)",
-                    ),
+                    decoration: const InputDecoration(labelText: "单位"),
                     maxLines: 1,
                   ),
                   const SizedBox(height: 16),
@@ -660,25 +701,22 @@ class _CommandDialogState extends State<_CommandDialog> {
                 if (_type != CommandType.enumSelect) ...[
                   TextFormField(
                     controller: _dataCtrl,
-                    decoration: const InputDecoration(
-                      labelText: "Data / Default Value",
-                    ),
+                    decoration: const InputDecoration(labelText: "数据/默认值"),
                     maxLines: 1,
                   ),
                   const SizedBox(height: 8),
                   CheckboxListTile(
-                    title: const Text("Hex Mode"),
+                    title: const Text("十六进制数据"),
                     value: _isHex,
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     onChanged: (v) => setState(() => _isHex = v ?? false),
                   ),
                 ] else ...[
-                  // Enum Options Editor
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      "Options (Name : Value)",
+                      "选项 (名称 : 值)",
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -705,14 +743,14 @@ class _CommandDialogState extends State<_CommandDialog> {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                   TextButton.icon(
                     icon: const Icon(Icons.add),
-                    label: const Text("Add Option"),
+                    label: const Text("添加选项"),
                     onPressed: _addEnumOption,
                   ),
                   CheckboxListTile(
-                    title: const Text("Send as Hex"),
+                    title: const Text("十六进制"),
                     value: _isHex,
                     dense: true,
                     contentPadding: EdgeInsets.zero,
@@ -727,39 +765,39 @@ class _CommandDialogState extends State<_CommandDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel"),
+          child: const Text("取消"),
         ),
-        TextButton(onPressed: _save, child: const Text("Save")),
+        TextButton(onPressed: _save, child: const Text("保存")),
       ],
     );
   }
 
   Future<void> _addEnumOption() async {
-    // Need custom dialog for Name + Value
+    //需要用于输入名称和值的自定义对话框
     final result = await showDialog<EnumOption>(
       context: context,
       builder: (c) {
         final nameCtrl = TextEditingController();
         final valCtrl = TextEditingController();
         return AlertDialog(
-          title: const Text("Add Option"),
+          title: const Text("添加选项"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(labelText: "Name (Display)"),
+                decoration: const InputDecoration(labelText: "名称 (显示)"),
               ),
               TextField(
                 controller: valCtrl,
-                decoration: const InputDecoration(labelText: "Value (Send)"),
+                decoration: const InputDecoration(labelText: "值 (发送)"),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c),
-              child: const Text("Cancel"),
+              child: const Text("取消"),
             ),
             TextButton(
               onPressed: () {
@@ -770,7 +808,7 @@ class _CommandDialogState extends State<_CommandDialog> {
                   );
                 }
               },
-              child: const Text("Add"),
+              child: const Text("添加"),
             ),
           ],
         );

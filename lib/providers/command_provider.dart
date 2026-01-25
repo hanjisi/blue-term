@@ -43,7 +43,6 @@ class CommandState {
 class CommandNotifier extends Notifier<CommandState> {
   @override
   CommandState build() {
-    // Start loading immediately
     _init();
     return CommandState();
   }
@@ -52,6 +51,7 @@ class CommandNotifier extends Notifier<CommandState> {
     await _loadProfiles();
   }
 
+  /// 获取配置文件的本地路径
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
     final profileDir = Directory('${directory.path}/blueterm_profiles');
@@ -61,38 +61,45 @@ class CommandNotifier extends Notifier<CommandState> {
     return profileDir.path;
   }
 
+  /// 加载配置文件
   Future<void> _loadProfiles() async {
-    // Note: state might be accessed after disposal if we aren't careful,
-    // but in Notifier build it's usually safe or we check mounted.
-    // Notifier doesn't expose mounted check easily, but we can try.
-
     try {
       final path = await _localPath;
       final dir = Directory(path);
       final List<CommandProfile> loaded = [];
-
-      await for (final entity in dir.list()) {
+      print("加载配置文件 $path");
+      final profiles = dir.list();
+      await for (final entity in profiles) {
         if (entity is File && entity.path.endsWith('.json')) {
           try {
             final content = await entity.readAsString();
             final json = jsonDecode(content);
             loaded.add(CommandProfile.fromJson(json));
           } catch (e) {
-            print('Error loading profile ${entity.path}: $e');
+            print('加载配置文件时出错 ${entity.path}: $e');
           }
         }
       }
 
       if (loaded.isEmpty) {
-        // Create default profile
+        // 创建默认配置文件
+        print("创建默认配置文件");
         final defaultProfile = CommandProfile.defaultProfile();
         await saveProfile(defaultProfile);
         loaded.add(defaultProfile);
       }
 
-      // Load last selected profile ID
+      // 加载最后选择的配置文件
       final prefs = await SharedPreferences.getInstance();
-      final lastId = prefs.getString('last_profile_id') ?? loaded.first.id;
+      String? lastId = prefs.getString('last_profile_id');
+      print("上一次选择的配置id ${lastId ?? "空"}");
+
+      final profile = loaded.where((p) => p.id == lastId).firstOrNull;
+      if (profile == null) {
+        print("上一次选择的配置文件不存在，使用第一个配置文件");
+        await prefs.setString('last_profile_id', loaded.first.id);
+        lastId = loaded.first.id;
+      }
 
       state = state.copyWith(
         profiles: loaded,
@@ -105,12 +112,13 @@ class CommandNotifier extends Notifier<CommandState> {
     }
   }
 
+  /// 保存配置文件
   Future<void> saveProfile(CommandProfile profile) async {
     final path = await _localPath;
     final file = File('$path/${profile.id}.json');
     await file.writeAsString(jsonEncode(profile.toJson()));
 
-    // Update local state
+    // 更新本地状态
     final index = state.profiles.indexWhere((p) => p.id == profile.id);
     List<CommandProfile> newProfiles = [...state.profiles];
     if (index >= 0) {
@@ -119,10 +127,10 @@ class CommandNotifier extends Notifier<CommandState> {
       newProfiles.add(profile);
     }
 
-    // If it's the current profile, we might want to refresh UI? well copyWith updates state ref.
     state = state.copyWith(profiles: newProfiles);
   }
 
+  /// 删除配置文件
   Future<void> deleteProfile(String id) async {
     final path = await _localPath;
     final file = File('$path/$id.json');
@@ -145,19 +153,21 @@ class CommandNotifier extends Notifier<CommandState> {
     }
   }
 
+  /// 设置当前配置文件
   Future<void> setCurrentProfile(String id) async {
     state = state.copyWith(currentProfileId: id);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_profile_id', id);
   }
 
+  /// 导入配置文件
   Future<void> importProfile(String jsonString) async {
     try {
       final json = jsonDecode(jsonString);
       final profile = CommandProfile.fromJson(json);
       await saveProfile(profile);
     } catch (e) {
-      print("Import failed: $e");
+      print("导入配置文件失败: $e");
       rethrow;
     }
   }

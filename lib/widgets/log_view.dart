@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/log_message.dart';
 import '../providers/terminal_provider.dart';
 
 class LogView extends ConsumerWidget {
-  const LogView({super.key});
+  const LogView({super.key, required this.id});
+
+  final DeviceIdentifier id;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(terminalProvider);
+    final state = ref.watch(terminalProvider(id));
     final logs = state.logs;
     final settings = state.settings;
 
@@ -27,14 +30,16 @@ class LogView extends ConsumerWidget {
 
     return Container(
       color: Colors.black,
-      child: ListView.builder(
-        controller: scrollController,
-        itemCount: logs.length,
-        padding: const EdgeInsets.all(8),
-        itemBuilder: (context, index) {
-          final log = logs[index];
-          return _buildLogItem(log, settings);
-        },
+      child: SelectionArea(
+        child: ListView.builder(
+          controller: scrollController,
+          itemCount: logs.length,
+          padding: const EdgeInsets.all(0),
+          itemBuilder: (context, index) {
+            final log = logs[index];
+            return _buildLogItem(log, settings);
+          },
+        ),
       ),
     );
   }
@@ -56,7 +61,6 @@ class LogView extends ConsumerWidget {
         prefix = "ERR";
         break;
       case LogType.info:
-      default:
         color = Colors.grey;
         prefix = "INF";
         break;
@@ -70,15 +74,26 @@ class LogView extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: SelectableText.rich(
+      padding: const EdgeInsets.symmetric(vertical: 0),
+      child: Text.rich(
         TextSpan(
           children: [
-            if (settings.showTimestamp)
-              TextSpan(
-                text: "[${log.timeString}] ",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
+            // if (settings.showTimestamp)
+            //   WidgetSpan(
+            //     alignment: PlaceholderAlignment.middle,
+            //     child: SizedBox(
+            //       width: 75,
+            //       child: Text(
+            //         "[${log.timeString}]",
+            //         style: const TextStyle(
+            //           color: Colors.grey,
+            //           fontSize: 12,
+            //           fontFamily: 'monospace',
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            // const TextSpan(text: " "),
             TextSpan(
               text: "[$prefix] ",
               style: TextStyle(
@@ -93,6 +108,7 @@ class LogView extends ConsumerWidget {
                 color: color,
                 fontFamily: 'Courier',
                 fontSize: 14,
+                height: 1.0,
               ),
             ),
           ],

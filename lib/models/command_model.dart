@@ -1,13 +1,18 @@
 import 'package:uuid/uuid.dart';
 
+/// 命令类型
 enum CommandType {
-  simple, // Click to send
-  input, // Type text + click send
-  enumSelect, // Select from dropdown + click send
+  simple, // 简单命令
+  input, // 输入命令
+  enumSelect, // 枚举命令
 }
 
+/// 一个枚举选项
 class EnumOption {
+  /// 选项名称
   final String name;
+
+  /// 选项值
   final String value;
 
   EnumOption({required this.name, required this.value});
@@ -22,6 +27,7 @@ class EnumOption {
   String toString() => name;
 }
 
+/// 一个命令
 class CommandItem {
   final String id;
   String name;
@@ -77,6 +83,7 @@ class CommandItem {
   }
 }
 
+/// 一个命令类别
 class CommandCategory {
   final String id;
   String name;
@@ -106,24 +113,19 @@ class CommandCategory {
   }
 }
 
+/// 一个命令配置
 class CommandProfile {
   final String id;
   String name;
-  String description;
   List<CommandCategory> categories;
 
-  CommandProfile({
-    String? id,
-    required this.name,
-    this.description = '',
-    required this.categories,
-  }) : id = id ?? const Uuid().v4();
+  CommandProfile({String? id, required this.name, required this.categories})
+    : id = id ?? const Uuid().v4();
 
   factory CommandProfile.fromJson(Map<String, dynamic> json) {
     return CommandProfile(
       id: json['id'],
       name: json['name'],
-      description: json['description'] ?? '',
       categories:
           (json['categories'] as List?)
               ?.map((e) => CommandCategory.fromJson(e))
@@ -136,17 +138,15 @@ class CommandProfile {
     return {
       'id': id,
       'name': name,
-      'description': description,
       'categories': categories.map((e) => e.toJson()).toList(),
     };
   }
 
-  // Create a default empty profile
+  // 创建一个默认的空配置文件
   factory CommandProfile.defaultProfile() {
     return CommandProfile(
-      name: 'Default',
-      description: 'Default command set',
-      categories: [CommandCategory(name: 'General', items: [])],
+      name: '默认',
+      categories: [CommandCategory(name: '通用', items: [])],
     );
   }
 }
