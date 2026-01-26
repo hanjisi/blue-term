@@ -5,26 +5,60 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/log_message.dart';
 import '../providers/terminal_provider.dart';
 
-class LogView extends ConsumerWidget {
+class LogView extends ConsumerStatefulWidget {
   const LogView({super.key, required this.id});
 
   final DeviceIdentifier id;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(terminalProvider(id));
+  ConsumerState<LogView> createState() => _LogViewState();
+}
+
+class _LogViewState extends ConsumerState<LogView> {
+  final ScrollController _scrollController = ScrollController();
+  bool _shouldAutoScroll = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    // 如果距离底部小于 50 像素，则视为“位于底部”
+    if (maxScroll - currentScroll <= 50) {
+      if (!_shouldAutoScroll) {
+        // 只有在状态改变时才更新状态，以避免不必要的重建
+        _shouldAutoScroll = true;
+      }
+    } else {
+      if (_shouldAutoScroll) {
+        _shouldAutoScroll = false;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(terminalProvider(widget.id));
     final logs = state.logs;
     final settings = state.settings;
 
-    // Auto-scroll logic could be added with a ScrollController and post frame callback
-    // For now, using reverse ListView is a simple trick if we want newest at bottom?
-    // Usually terminals have oldest at top. We need a ScrollController to jump to bottom.
-
-    final ScrollController scrollController = ScrollController();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (settings.autoScroll && scrollController.hasClients) {
-        scrollController.jumpTo(scrollController.position.maxScrollExtent);
+      if (settings.autoScroll &&
+          _shouldAutoScroll &&
+          _scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
     });
 
@@ -32,7 +66,7 @@ class LogView extends ConsumerWidget {
       color: Colors.black,
       child: SelectionArea(
         child: ListView.builder(
-          controller: scrollController,
+          controller: _scrollController,
           itemCount: logs.length,
           padding: const EdgeInsets.all(0),
           itemBuilder: (context, index) {
@@ -78,22 +112,6 @@ class LogView extends ConsumerWidget {
       child: Text.rich(
         TextSpan(
           children: [
-            // if (settings.showTimestamp)
-            //   WidgetSpan(
-            //     alignment: PlaceholderAlignment.middle,
-            //     child: SizedBox(
-            //       width: 75,
-            //       child: Text(
-            //         "[${log.timeString}]",
-            //         style: const TextStyle(
-            //           color: Colors.grey,
-            //           fontSize: 12,
-            //           fontFamily: 'monospace',
-            //         ),
-            //       ),
-            //     ),
-            //   ),
-            // const TextSpan(text: " "),
             TextSpan(
               text: "[$prefix] ",
               style: TextStyle(

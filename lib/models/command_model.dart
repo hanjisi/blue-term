@@ -7,6 +7,18 @@ enum CommandType {
   enumSelect, // 枚举命令
 }
 
+/// 获取命令类型
+String getCommandTypeName(CommandType cmd) {
+  switch (cmd) {
+    case CommandType.simple:
+      return "简单";
+    case CommandType.input:
+      return "输入";
+    case CommandType.enumSelect:
+      return "枚举";
+  }
+}
+
 /// 一个枚举选项
 class EnumOption {
   /// 选项名称
@@ -32,7 +44,9 @@ class CommandItem {
   final String id;
   String name;
   CommandType type;
-  String data; // For simple and input (default value)
+  String prefix; //指令前缀
+  String data; // 适用于简单指令或者输入输入的输入数据
+  String suffix; //指令后缀
   List<EnumOption> enumOptions;
   bool isHex;
   String unit;
@@ -41,7 +55,9 @@ class CommandItem {
     String? id,
     required this.name,
     required this.type,
+    this.prefix = '',
     this.data = '',
+    this.suffix = '',
     this.enumOptions = const [],
     this.isHex = false,
     this.unit = '',
@@ -55,7 +71,9 @@ class CommandItem {
         (e) => e.name == json['type'],
         orElse: () => CommandType.simple,
       ),
+      prefix: json['prefix'] ?? '',
       data: json['data'] ?? '',
+      suffix: json['suffix'] ?? '',
       enumOptions:
           (json['enumOptions'] as List?)
               ?.map(
@@ -75,7 +93,9 @@ class CommandItem {
       'id': id,
       'name': name,
       'type': type.name,
+      'prefix': prefix,
       'data': data,
+      'suffix': suffix,
       'enumOptions': enumOptions.map((e) => e.toJson()).toList(),
       'isHex': isHex,
       'unit': unit,

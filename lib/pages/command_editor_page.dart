@@ -226,7 +226,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
               (item) => ListTile(
                 title: Text(item.name),
                 subtitle: Text(
-                  "${item.type.name} ${item.unit.isNotEmpty ? '(${item.unit})' : ''}",
+                  "${getCommandTypeName(item.type)} ${item.unit.isNotEmpty ? '(${item.unit})' : ''}",
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.menu),
@@ -391,14 +391,15 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
   }
 
   Future<void> _importFromUrl() async {
-    final url = await _promptText("Enter URL");
+    final url = await _promptText("请输入URL");
     if (url != null && url.isNotEmpty) {
       try {
-        // Use standard HttpClient to avoid conflicts if 'http' package behaves oddly or for lightness
         final request = await HttpClient().getUrl(Uri.parse(url));
+        print("开始下载配置");
         final response = await request.close();
         if (response.statusCode == 200) {
           final jsonString = await response.transform(utf8.decoder).join();
+          print("配置下载完成 $jsonString");
           _processImport(jsonString);
         } else {
           throw "HTTP ${response.statusCode}";
@@ -407,7 +408,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text("Download Error: $e")));
+          ).showSnackBar(SnackBar(content: Text("导入失败: $e")));
         }
       }
     }
@@ -419,13 +420,13 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text("Imported successfully")));
+        ).showSnackBar(const SnackBar(content: Text("导入成功")));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ).showSnackBar(SnackBar(content: Text("导入失败: $e")));
       }
     }
   }
@@ -435,7 +436,7 @@ class _CommandEditorPageState extends ConsumerState<CommandEditorPage>
     Clipboard.setData(ClipboardData(text: json));
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text("JSON copied to clipboard")));
+    ).showSnackBar(const SnackBar(content: Text("已复制到剪贴板")));
   }
 
   Future<void> _addCategory(CommandProfile p) async {
@@ -623,7 +624,9 @@ class _CommandDialog extends StatefulWidget {
 class _CommandDialogState extends State<_CommandDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameCtrl;
+  late TextEditingController _prefixCtrl;
   late TextEditingController _dataCtrl;
+  late TextEditingController _suffixCtrl;
   late TextEditingController _unitCtrl; // New Unit Controller
   late CommandType _type;
   late bool _isHex;
@@ -634,7 +637,9 @@ class _CommandDialogState extends State<_CommandDialog> {
     super.initState();
     final item = widget.initialItem;
     _nameCtrl = TextEditingController(text: item?.name ?? '');
+    _prefixCtrl = TextEditingController(text: item?.prefix ?? '');
     _dataCtrl = TextEditingController(text: item?.data ?? '');
+    _suffixCtrl = TextEditingController(text: item?.suffix ?? '');
     _unitCtrl = TextEditingController(text: item?.unit ?? '');
     _type = item?.type ?? CommandType.simple;
     _isHex = item?.isHex ?? false;
@@ -674,11 +679,7 @@ class _CommandDialogState extends State<_CommandDialog> {
                       .map(
                         (e) => DropdownMenuItem(
                           value: e,
-                          child: Text(switch (e) {
-                            CommandType.simple => "简单",
-                            CommandType.input => "输入",
-                            CommandType.enumSelect => "枚举",
-                          }),
+                          child: Text(getCommandTypeName(e)),
                         ),
                       )
                       .toList(),
@@ -695,7 +696,14 @@ class _CommandDialogState extends State<_CommandDialog> {
                     decoration: const InputDecoration(labelText: "单位"),
                     maxLines: 1,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _prefixCtrl,
+                    decoration: const InputDecoration(labelText: "前缀"),
+                    validator: (v) => v == null || v.isEmpty ? "前缀不能为空" : null,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 8),
                 ],
 
                 if (_type != CommandType.enumSelect) ...[
@@ -705,6 +713,18 @@ class _CommandDialogState extends State<_CommandDialog> {
                     maxLines: 1,
                   ),
                   const SizedBox(height: 8),
+                ],
+
+                if (_type == CommandType.input) ...[
+                  TextFormField(
+                    controller: _suffixCtrl,
+                    decoration: const InputDecoration(labelText: "后缀"),
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                if (_type != CommandType.enumSelect) ...[
                   CheckboxListTile(
                     title: const Text("十六进制数据"),
                     value: _isHex,
@@ -827,7 +847,9 @@ class _CommandDialogState extends State<_CommandDialog> {
         id: widget.initialItem?.id, // Keep ID if editing
         name: _nameCtrl.text,
         type: _type,
+        prefix: _prefixCtrl.text,
         data: _dataCtrl.text,
+        suffix: _suffixCtrl.text,
         unit: _unitCtrl.text,
         enumOptions: _enumOptions,
         isHex: _isHex,

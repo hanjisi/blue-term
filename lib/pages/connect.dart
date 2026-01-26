@@ -15,8 +15,8 @@ class ConnectPage extends ConsumerStatefulWidget {
 
 class _ConnectPageState extends ConsumerState<ConnectPage> {
   bool _showFilter = false;
-  bool _hideUnnamed = false;
-  final TextEditingController _filterCtrl = TextEditingController();
+  bool _hideUnnamed = true;
+  final TextEditingController _filterCtrl = TextEditingController(text: "SSTD");
 
   @override
   void dispose() {
@@ -70,10 +70,10 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                         isDense: true,
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.search),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                        // contentPadding: EdgeInsets.symmetric(
+                        //   horizontal: 8,
+                        //   vertical: 8,
+                        // ),
                       ),
                     ),
                     const SizedBox(height: 8),

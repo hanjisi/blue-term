@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:enough_convert/enough_convert.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -47,7 +48,6 @@ class TerminalSettings {
 class TerminalState {
   final List<LogMessage> logs;
   final TerminalSettings settings;
-
   TerminalState({required this.logs, required this.settings});
 
   TerminalState copyWith({List<LogMessage>? logs, TerminalSettings? settings}) {
@@ -62,7 +62,7 @@ class TerminalNotifier extends Notifier<TerminalState> {
   static final Guid sppServiceGuid = Guid('FFE0');
   static final Guid sppWriteGuid = Guid('FFE2');
   static final Guid sppNotifyGuid = Guid('FFE1');
-
+  final GbkCodec coder = const GbkCodec(allowInvalid: false);
   final DeviceIdentifier remoteId;
   TerminalNotifier(this.remoteId);
 
@@ -110,7 +110,7 @@ class TerminalNotifier extends Notifier<TerminalState> {
             final hexMode = state.settings.hexMode;
             addLog(
               LogMessage(
-                text: hexMode ? "" : String.fromCharCodes(value),
+                text: hexMode ? "" : coder.decode(value),
                 rawData: value,
                 type: LogType.received,
               ),
@@ -119,25 +119,6 @@ class TerminalNotifier extends Notifier<TerminalState> {
         });
 
         addInfo("连接成功");
-        addSent('''====== OEM T Recorder======
-Softvar:02.04.00.01
-Hardvar:02.03.00.00
-
-ID:    	 1710     SN:       	    0
-Cycle:	 1s
-Delay:	 500ms    PgaSize:	 0
-
-Temp calib time:
-Temp coef:
-T0 = 0.000000E+00
-T1 = 0.000000E+00
-T2 = 0.000000E+00
-T3 = 0.000000E+00
-T4 = 0.000000E+00
-
-
-slable
-llable''');
       }
     } catch (e) {
       addError("连接失败: $e");
@@ -159,39 +140,41 @@ llable''');
   }
 
   Future<void> write(String data, bool isHex) async {
-    final settings = state.settings;
-    List<int> bytes = [];
-    if (isHex) {
-      final clean = data.replaceAll(RegExp(r'\s+'), '');
-      if (clean.length % 2 != 0) {
-        addError("无效的Hex格式");
-        return;
+    try {
+      final settings = state.settings;
+      List<int> bytes = [];
+      if (isHex) {
+        final clean = data.replaceAll(RegExp(r'\s+'), '');
+        if (clean.length % 2 != 0) {
+          addError("无效的Hex格式");
+          return;
+        }
+        for (int i = 0; i < clean.length; i += 2) {
+          bytes.add(int.parse(clean.substring(i, i + 2), radix: 16));
+        }
+      } else {
+        bytes = ascii.encode(data).toList();
+        if (settings.lineEnding == LineEnding.cr) bytes.add(13);
+        if (settings.lineEnding == LineEnding.lf) bytes.add(10);
+        if (settings.lineEnding == LineEnding.crlf) bytes.addAll([13, 10]);
       }
-      for (int i = 0; i < clean.length; i += 2) {
-        bytes.add(int.parse(clean.substring(i, i + 2), radix: 16));
-      }
-    } else {
-      bytes = utf8.encode(data);
-      if (settings.lineEnding == LineEnding.cr) bytes.add(13);
-      if (settings.lineEnding == LineEnding.lf) bytes.add(10);
-      if (settings.lineEnding == LineEnding.crlf) bytes.addAll([13, 10]);
-    }
 
-    addLog(
-      LogMessage(text: isHex ? "" : data, rawData: bytes, type: LogType.sent),
-    );
+      addLog(
+        LogMessage(text: isHex ? "" : data, rawData: bytes, type: LogType.sent),
+      );
 
-    if (_writeChar != null) {
-      try {
+      if (_writeChar != null) {
+        print("写入: ${utf8.decode(bytes)}");
         await _writeChar!.write(
           bytes,
           withoutResponse: _writeChar!.properties.writeWithoutResponse,
         );
-      } catch (e) {
-        addError("写入失败: $e");
+      } else {
+        addInfo("未找到写入特征值");
       }
-    } else {
-      addInfo("未找到写入特征值 (模拟发送)");
+    } catch (e) {
+      print("写入失败: $e");
+      addError("写入失败: $e");
     }
   }
 

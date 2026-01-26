@@ -16,7 +16,7 @@ class CommandPanel extends ConsumerStatefulWidget {
 
 class _CommandPanelState extends ConsumerState<CommandPanel> {
   final TextEditingController _globalInputController = TextEditingController();
-  bool _globalIsHex = false; // Internal state for the manual input box
+  final bool _globalIsHex = false; // Internal state for the manual input box
 
   @override
   void dispose() {
@@ -314,6 +314,14 @@ class _InputCmdRowState extends State<_InputCmdRow> {
     super.dispose();
   }
 
+  void sendData() {
+    String data = "${widget.item.prefix} ${_ctrl.text}";
+    if (widget.item.suffix.isNotEmpty) {
+      data += widget.item.suffix;
+    }
+    widget.onSend(data, widget.item.isHex);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -374,7 +382,16 @@ class _InputCmdRowState extends State<_InputCmdRow> {
                   ).primaryColor.withValues(alpha: 0.1),
                 ),
                 icon: const Icon(Icons.send, size: 16, color: Colors.blue),
-                onPressed: () => widget.onSend(_ctrl.text, widget.item.isHex),
+                onPressed: () => {
+                  if (_ctrl.text.isEmpty)
+                    {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(const SnackBar(content: Text("数据不能为空"))),
+                    }
+                  else
+                    {sendData()},
+                },
               ),
             ),
           ],
@@ -445,7 +462,7 @@ class _EnumCmdRowState extends State<_EnumCmdRow> {
                   isDense: true,
                 ),
                 isExpanded: true,
-                value: _selected,
+                initialValue: _selected,
                 style: const TextStyle(fontSize: 12, color: Colors.black),
                 items: widget.item.enumOptions
                     .map(
