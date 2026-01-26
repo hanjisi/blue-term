@@ -4,4 +4,4 @@ A Bluetooth serial terminal.
 
 ## Getting Started
 
-- 启动代码生成：dart run build_runner watch -d
+- 构建: flutter build apk --split-per-abi
