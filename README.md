@@ -6,7 +6,7 @@
 
 本项目诞生的初衷是为了解决 **DX-BT24** (深圳大夏龙雀科技有限公司) 的蓝牙串口模块官方 App 功能简陋、难以满足专业调试需求的问题。本应用致力于在移动端还原 PC 端串口调试助手（如 SSCOM）的高效体验，支持自定义指令组、复杂的参数配置以及配置文件的便捷分享。
 
-> ![App Main Interface Placeholder](docs/images/main_screenshot.jpg)
+<img src="docs/images/main_screenshot.jpg" width="200" />
 
 ## ✨ 核心功能
 
@@ -49,26 +49,26 @@ App 通过以下特征值实现类似 SPP (Serial Port Profile) 的数据透传�
 
 #### A. 简单指令 (Simple Command)
 最基础的指令，点击即发送。
-* ![](docs/images/simple_ommand.jpg)
+* <img src="docs/images/simple_ommand.jpg" width="200" />
 
 #### B. 可输入指令 (Input Command)
 允许在发送前输入数据。
-* ![](docs/images/input_command.jpg)
+* <img src="docs/images/input_command.jpg" width="200" />
 
 #### C. 枚举指令 (Enum Command)
 定义一组相关的操作。
-* ![](docs/images/enum_command.jpg)
+* <img src="docs/images/enum_command.jpg" width="200" />
 
 
 ### 配置指令
 本 App 的核心在于“先配置，后使用，点击配置按钮跳转到指令编辑界面。
-* ![](docs/images/command_edit.jpg)
+* <img src="docs/images/command_edit.jpg" width="200" />
 
 1.  **新建分组**：点击左上角的添加分组。
 2.  **添加指令**：点击对应分组右边的菜单按钮。
-    * ![](docs/images/add_command.jpg)
+* <img src="docs/images/add_command.jpg" width="200" />
 3.  **编辑指令**：点击对应指令右边的菜单按钮送。
-    * ![](docs/images/edit_command.jpg)
+* <img src="docs/images/edit_command.jpg" width="200" />
 
 ## 📥 导入与导出
 
