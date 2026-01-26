@@ -84,11 +84,11 @@ class _LogViewState extends ConsumerState<LogView> {
     switch (log.type) {
       case LogType.sent:
         color = Colors.greenAccent;
-        prefix = "TX";
+        prefix = ">";
         break;
       case LogType.received:
         color = Colors.blueAccent;
-        prefix = "RX";
+        prefix = "<";
         break;
       case LogType.error:
         color = Colors.redAccent;
@@ -114,20 +114,11 @@ class _LogViewState extends ConsumerState<LogView> {
           children: [
             TextSpan(
               text: "[$prefix] ",
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: color, fontSize: 12),
             ),
             TextSpan(
               text: content,
-              style: TextStyle(
-                color: color,
-                fontFamily: 'Courier',
-                fontSize: 14,
-                height: 1.0,
-              ),
+              style: TextStyle(color: color, fontSize: 12, height: 1.0),
             ),
           ],
         ),
