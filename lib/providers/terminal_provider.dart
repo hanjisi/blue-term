@@ -160,11 +160,14 @@ class TerminalNotifier extends Notifier<TerminalState> {
       }
 
       addLog(
-        LogMessage(text: isHex ? "" : data, rawData: bytes, type: LogType.sent),
+        LogMessage(
+          text: isHex ? ascii.decode(bytes) : data,
+          rawData: bytes,
+          type: LogType.sent,
+        ),
       );
 
       if (_writeChar != null) {
-        print("写入: ${utf8.decode(bytes)}");
         await _writeChar!.write(
           bytes,
           withoutResponse: _writeChar!.properties.writeWithoutResponse,
