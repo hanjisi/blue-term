@@ -1,0 +1,43 @@
+<svg
+  width="1000"
+  height="1000"
+  viewBox="0 0 200 200"
+  xmlns="http://www.w3.org/2000/svg"
+  fill="none"
+  stroke="#0027a9"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <defs>
+    <clipPath id="vertical-cuts-both-ends">
+      <rect x="38" y="0" width="52" height="200" />
+    </clipPath>
+  </defs>
+
+  <path
+    d="M30 64 L90 100 L30 136"
+    stroke-width="10"
+    stroke-linecap="butt"
+    stroke-linejoin="miter"
+    clip-path="url(#vertical-cuts-both-ends)"
+  />
+
+  <path
+    d="M105 80
+       C120 90, 120 110, 105 120"
+    stroke-width="10"
+  />
+
+  <path
+    d="M120 65
+       C145 85, 145 115, 120 135"
+    stroke-width="10"
+  />
+
+  <path
+    d="M135 50
+       C170 80, 170 120, 135 150"
+    stroke-width="10"
+  />
+
+</svg>
