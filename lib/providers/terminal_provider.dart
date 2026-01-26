@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:blueterm/utils/modbus_utility.dart';
 import 'package:enough_convert/enough_convert.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/log_message.dart';
 
-enum LineEnding { none, cr, lf, crlf }
+enum LineEnding { none, cr, lf, crlf, crc16 }
 
 class TerminalSettings {
   final bool hexMode;
@@ -144,13 +145,12 @@ class TerminalNotifier extends Notifier<TerminalState> {
       final settings = state.settings;
       List<int> bytes = [];
       if (isHex) {
-        final clean = data.replaceAll(RegExp(r'\s+'), '');
-        if (clean.length % 2 != 0) {
-          addError("无效的Hex格式");
-          return;
-        }
-        for (int i = 0; i < clean.length; i += 2) {
-          bytes.add(int.parse(clean.substring(i, i + 2), radix: 16));
+        final hexData = parseHex(data);
+        if (settings.lineEnding == LineEnding.crc16) {
+          final ctc16 = ModbusUtility.computeCRC16(hexData);
+          bytes = [...hexData, ...ctc16];
+        } else {
+          bytes = hexData;
         }
       } else {
         bytes = ascii.encode(data).toList();
@@ -161,7 +161,9 @@ class TerminalNotifier extends Notifier<TerminalState> {
 
       addLog(
         LogMessage(
-          text: isHex ? ascii.decode(bytes) : data,
+          text: isHex
+              ? bytes.map((e) => e.toRadixString(16).padLeft(2, '0')).join(' ')
+              : data,
           rawData: bytes,
           type: LogType.sent,
         ),
@@ -176,8 +178,8 @@ class TerminalNotifier extends Notifier<TerminalState> {
         addInfo("未找到写入特征值");
       }
     } catch (e) {
-      print("写入失败: $e");
-      addError("写入失败: $e");
+      print("写入失败: $e, 数据: $data");
+      addError("写入失败: $e, 数据: $data");
     }
   }
 
@@ -219,6 +221,30 @@ class TerminalNotifier extends Notifier<TerminalState> {
     state = state.copyWith(
       settings: state.settings.copyWith(lineEnding: ending),
     );
+  }
+
+  List<int> parseHex(String input) {
+    // 1只保留 0-9 a-f A-F
+    final clean = input.replaceAll(RegExp(r'[^0-9a-fA-F]'), '');
+
+    print("clean: $clean");
+    if (clean.isEmpty) {
+      return [];
+    }
+
+    // 必须是偶数长度
+    if (clean.length % 2 != 0) {
+      throw const FormatException('长度不是偶数');
+    }
+
+    // 每两个字符转一个字节
+    final bytes = <int>[];
+    for (int i = 0; i < clean.length; i += 2) {
+      bytes.add(int.parse(clean.substring(i, i + 2), radix: 16));
+    }
+
+    print("bytes $bytes");
+    return bytes;
   }
 }
 
