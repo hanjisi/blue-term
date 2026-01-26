@@ -82,22 +82,37 @@ class _TerminalPageState extends ConsumerState<TerminalPage> {
                   () => notifier.toggleHexMode(),
                 ),
                 const VerticalDivider(width: 10, indent: 8, endIndent: 8),
-                DropdownButton<LineEnding>(
-                  value: state.settings.lineEnding,
-                  isDense: true,
-                  underline: const SizedBox(),
-                  items: LineEnding.values
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(
-                            e.name.toUpperCase(),
-                            style: const TextStyle(fontSize: 13),
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<LineEnding>(
+                    value: state.settings.lineEnding,
+                    isDense: true,
+                    iconSize: 20,
+                    alignment: AlignmentDirectional.center,
+                    items: LineEnding.values
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(
+                              e.name.toUpperCase(),
+                              style: const TextStyle(fontSize: 13),
+                            ),
                           ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => notifier.setLineEnding(v!),
+                        )
+                        .toList(),
+                    onChanged: (v) => notifier.setLineEnding(v!),
+                  ),
+                ),
+                const VerticalDivider(width: 10, indent: 8, endIndent: 8),
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep, size: 20),
+                  tooltip: "清除日志",
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 30,
+                    minHeight: 30,
+                  ),
+                  splashRadius: 15,
+                  onPressed: notifier.clearLogs,
                 ),
               ],
             ),

@@ -46,7 +46,7 @@ class _CommandPanelState extends ConsumerState<CommandPanel> {
                     controller: _globalInputController,
                     style: const TextStyle(fontSize: 13),
                     decoration: const InputDecoration(
-                      hintText: '自定义命令',
+                      hintText: '自定义',
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 0,
@@ -346,12 +346,12 @@ class _InputCmdRowState extends State<_InputCmdRow> {
                 height: 35,
                 child: TextField(
                   controller: _ctrl,
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: 13),
                   decoration: InputDecoration(
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 8,
-                      vertical: 9,
+                      vertical: 8,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
