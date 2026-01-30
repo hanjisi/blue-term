@@ -48,8 +48,9 @@ class CommandItem {
   String data; // 适用于简单指令或者输入输入的输入数据
   String suffix; //指令后缀
   List<EnumOption> enumOptions;
-  bool isHex;
-  String unit;
+  bool dataOptional; // 数据是否允许为空
+  bool isHex; // 是否为十六进制
+  String unit; // 单位
 
   CommandItem({
     String? id,
@@ -59,6 +60,7 @@ class CommandItem {
     this.data = '',
     this.suffix = '',
     this.enumOptions = const [],
+    this.dataOptional = false,
     this.isHex = false,
     this.unit = '',
   }) : id = id ?? const Uuid().v4();
@@ -83,6 +85,7 @@ class CommandItem {
               )
               .toList() ??
           [], // Handle legacy List<String> potentially
+      dataOptional: json['dataOptional'] ?? false,
       isHex: json['isHex'] ?? false,
       unit: json['unit'] ?? '',
     );
@@ -97,6 +100,7 @@ class CommandItem {
       'data': data,
       'suffix': suffix,
       'enumOptions': enumOptions.map((e) => e.toJson()).toList(),
+      'dataOptional': dataOptional,
       'isHex': isHex,
       'unit': unit,
     };

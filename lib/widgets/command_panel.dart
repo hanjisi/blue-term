@@ -315,7 +315,7 @@ class _InputCmdRowState extends State<_InputCmdRow> {
   }
 
   void sendData() {
-    String data = "${widget.item.prefix} ${_ctrl.text}";
+    String data = "${widget.item.prefix}${_ctrl.text}";
     if (widget.item.suffix.isNotEmpty) {
       data += widget.item.suffix;
     }
@@ -383,7 +383,7 @@ class _InputCmdRowState extends State<_InputCmdRow> {
                 ),
                 icon: const Icon(Icons.send, size: 16, color: Colors.blue),
                 onPressed: () => {
-                  if (_ctrl.text.isEmpty)
+                  if (!widget.item.dataOptional && _ctrl.text.isEmpty)
                     {
                       ScaffoldMessenger.of(
                         context,

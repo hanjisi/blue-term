@@ -629,6 +629,7 @@ class _CommandDialogState extends State<_CommandDialog> {
   late TextEditingController _suffixCtrl;
   late TextEditingController _unitCtrl; // New Unit Controller
   late CommandType _type;
+  late bool _dataOptional;
   late bool _isHex;
   late List<EnumOption> _enumOptions; // Use EnumOption model
 
@@ -642,6 +643,7 @@ class _CommandDialogState extends State<_CommandDialog> {
     _suffixCtrl = TextEditingController(text: item?.suffix ?? '');
     _unitCtrl = TextEditingController(text: item?.unit ?? '');
     _type = item?.type ?? CommandType.simple;
+    _dataOptional = item?.dataOptional ?? false;
     _isHex = item?.isHex ?? false;
     _enumOptions = List.from(item?.enumOptions ?? []);
   }
@@ -704,6 +706,14 @@ class _CommandDialogState extends State<_CommandDialog> {
                     maxLines: 1,
                   ),
                   const SizedBox(height: 8),
+                  CheckboxListTile(
+                    title: const Text("数据允许为空"),
+                    value: _dataOptional,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (v) =>
+                        setState(() => _dataOptional = v ?? false),
+                  ),
                 ],
 
                 if (_type != CommandType.enumSelect) ...[
@@ -850,6 +860,7 @@ class _CommandDialogState extends State<_CommandDialog> {
         prefix: _prefixCtrl.text,
         data: _dataCtrl.text,
         suffix: _suffixCtrl.text,
+        dataOptional: _dataOptional,
         unit: _unitCtrl.text,
         enumOptions: _enumOptions,
         isHex: _isHex,
