@@ -18,10 +18,12 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
   bool _showFilter = false;
   bool _hideUnnamed = true;
   final TextEditingController _filterCtrl = TextEditingController(text: "SSTD");
+  final FocusNode _filterFocusNode = FocusNode();
 
   @override
   void dispose() {
     _filterCtrl.dispose();
+    _filterFocusNode.dispose();
     super.dispose();
   }
 
@@ -59,8 +61,10 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
               setState(() {
                 _showFilter = !_showFilter;
                 if (!_showFilter) {
-                  // Optional: clear filter when closing? No, keep state.
-                  FocusScope.of(context).unfocus();
+                  _filterFocusNode.unfocus();
+                  FocusManager.instance.primaryFocus?.unfocus();
+                } else {
+                  _filterFocusNode.requestFocus();
                 }
               });
             },
@@ -82,6 +86,7 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                   children: [
                     TextField(
                       controller: _filterCtrl,
+                      focusNode: _filterFocusNode,
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
                         labelText: '按名称过滤',
@@ -170,12 +175,23 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                                 .stopScan();
                           }
                           if (context.mounted) {
-                            Navigator.of(context).push(
+                            _filterFocusNode.unfocus();
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            await Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) =>
                                     TerminalPage(device: scanResult.device),
                               ),
                             );
+                            if (mounted) {
+                              _filterFocusNode.unfocus();
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              if (_showFilter) {
+                                setState(() {
+                                  _showFilter = false;
+                                });
+                              }
+                            }
                           }
                         },
                       );

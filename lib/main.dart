@@ -1,6 +1,7 @@
 import 'package:blueterm/pages/connect.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -11,6 +12,7 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    WakelockPlus.enable();
     return MaterialApp(
       title: 'BlueTerm',
       theme: ThemeData(

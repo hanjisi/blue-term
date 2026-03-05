@@ -2,7 +2,7 @@ name: blueterm
 description: "A Bluetooth serial terminal."
 publish_to: 'none' 
 
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: ^3.10.7
@@ -21,6 +21,7 @@ dependencies:
   uuid: ^4.5.2
   intl: ^0.20.2
   http: ^1.6.0
+  wakelock_plus: ^1.4.0
 
 dev_dependencies:
   flutter_test:
